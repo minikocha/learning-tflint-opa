@@ -155,3 +155,60 @@ test_ckv_aws_54_passed if {
 	issues := s3.ckv_aws_54 with terraform.resources as blocking_public_policy_buckets
 	count(issues) == 0
 }
+
+# -----
+# CKV_AWS_55: Ensure S3 bucket has ignore public ACLs enabled
+# -----
+
+non_ignoring_public_acls_buckets(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_s3_bucket" "failed_1" {}
+
+resource "awscc_s3_bucket" "failed_2" {
+  public_access_block_configuration = null
+}
+
+resource "awscc_s3_bucket" "failed_3" {
+  public_access_block_configuration = {}
+}
+
+resource "awscc_s3_bucket" "failed_4" {
+  public_access_block_configuration = {
+    ignore_public_acls = null
+  }
+}
+
+resource "awscc_s3_bucket" "failed_5" {
+  public_access_block_configuration = {
+    ignore_public_acls = false
+  }
+}`},
+)
+
+test_ckv_aws_55_failed if {
+	issues := s3.ckv_aws_55 with terraform.resources as non_ignoring_public_acls_buckets
+	count(issues) == 5
+	every issue in issues {
+		issue.msg == "Ensure S3 bucket has ignore public ACLs enabled"
+	}
+}
+
+ignoring_public_acls_buckets(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_s3_bucket" "passed_1" {
+  public_access_block_configuration = {
+    ignore_public_acls = true
+  }
+}`},
+)
+
+test_ckv_aws_55_passed if {
+	issues := s3.ckv_aws_55 with terraform.resources as ignoring_public_acls_buckets
+	count(issues) == 0
+}

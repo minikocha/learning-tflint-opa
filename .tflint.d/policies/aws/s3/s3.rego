@@ -73,3 +73,13 @@ ckv_aws_54 contains issue if {
 	public_access_block_configuration(buckets[i].config, "block_public_policy")
 	issue := tflint.issue("Ensure S3 bucket has block public policy enabled", buckets[i].decl_range)
 }
+
+# -----
+# CKV_AWS_55: Ensure S3 bucket has ignore public ACLs enabled
+# -----
+
+ckv_aws_55 contains issue if {
+	some i
+	public_access_block_configuration(buckets[i].config, "ignore_public_acls")
+	issue := tflint.issue("Ensure S3 bucket has ignore public ACLs enabled", buckets[i].decl_range)
+}
