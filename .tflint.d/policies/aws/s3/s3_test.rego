@@ -316,3 +316,108 @@ test_ckv_aws_56_passed if {
 	issues := s3.ckv_aws_56 with terraform.resources as restricting_public_buckets
 	count(issues) == 0
 }
+
+# -----
+# CKV_AWS_70: Ensure S3 bucket does not allow an action with any Principal
+# -----
+
+allows_any_principal(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	# NOTE: using `jsonencode()` fails to create mock resources, so use here-doc instead.
+	{"main.tf": `
+resource "awscc_s3_bucket_policy" "failed_1" {
+  bucket = ""
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": "*",
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*"
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_s3_bucket_policy" "failed_2" {
+  bucket = ""
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+            "AWS": "*"
+          },
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*"
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_s3_bucket_policy" "failed_3" {
+  bucket = ""
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+            "AWS": ["*"]
+          },
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*"
+        }
+      ]
+    }
+  EOT
+}`},
+)
+
+test_ckv_aws_70_failed if {
+	issues := s3.ckv_aws_70 with terraform.resources as allows_any_principal
+	count(issues) == 3
+	every issue in issues {
+		issue.msg == "Ensure S3 bucket does not allow an action with any Principal"
+	}
+}
+
+allows_specific_principal(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	# NOTE: using `jsonencode()` fails to create mock resources, so use here-doc instead.
+	{"main.tf": `
+resource "awscc_s3_bucket_policy" "passed_1" {
+  bucket = ""
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+		    "Service": "logging.s3.amazonaws.com"
+		  },
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*"
+        }
+      ]
+    }
+  EOT
+}`},
+)
+
+test_ckv_aws_70_passed if {
+	issues := s3.ckv_aws_70 with terraform.resources as allows_specific_principal
+	count(issues) == 0
+}

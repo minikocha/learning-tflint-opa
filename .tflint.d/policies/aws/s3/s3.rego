@@ -12,6 +12,12 @@ buckets := terraform.resources(
 	{"expand_mode": "none"},
 )
 
+bucket_policies := terraform.resources(
+	"awscc_s3_bucket_policy",
+	{"policy_document": "string"},
+	{"expand_mode": "none"},
+)
+
 # -----
 # Functions
 # -----
@@ -114,4 +120,35 @@ ckv_aws_56 contains issue if {
 	some i
 	public_access_block_configuration(buckets[i].config, "restrict_public_buckets")
 	issue := tflint.issue("Ensure S3 bucket has RestrictPublicBuckets enabled", buckets[i].decl_range)
+}
+
+# -----
+# CKV_AWS_70: Ensure S3 bucket does not allow an action with any Principal
+# -----
+
+allows_any_principal(policy_document) if {
+	policy_document.Statement[_].Effect == "Allow"
+	policy_document.Statement[_].Principal == "*"
+}
+
+allows_any_principal(policy_document) if {
+	policy_document.Statement[_].Effect == "Allow"
+	is_object(policy_document.Statement[_].Principal)
+	"AWS" in object.keys(policy_document.Statement[_].Principal)
+	policy_document.Statement[_].Principal.AWS == "*"
+}
+
+allows_any_principal(policy_document) if {
+	policy_document.Statement[_].Effect == "Allow"
+	is_object(policy_document.Statement[_].Principal)
+	"AWS" in object.keys(policy_document.Statement[_].Principal)
+	is_array(policy_document.Statement[_].Principal.AWS)
+	"*" in policy_document.Statement[_].Principal.AWS
+}
+
+ckv_aws_70 contains issue if {
+	some i
+	doc := json.unmarshal(bucket_policies[i].config.policy_document.value)
+	allows_any_principal(doc)
+	issue := tflint.issue("Ensure S3 bucket does not allow an action with any Principal", bucket_policies[i].decl_range)
 }
