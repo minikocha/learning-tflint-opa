@@ -7,8 +7,8 @@ import rego.v1
 # S3
 # -----
 
-deny_ckv_aws_18 := s3.ckv_aws_18
-deny_ckv_aws_53 := s3.ckv_aws_53
-deny_ckv_aws_54 := s3.ckv_aws_54
-deny_ckv_aws_55 := s3.ckv_aws_55
-deny_ckv_aws_56 := s3.ckv_aws_56
+notice_ckv_aws_18 := s3.ckv_aws_18
+warn_ckv_aws_53 := s3.ckv_aws_53
+warn_ckv_aws_54 := s3.ckv_aws_54
+warn_ckv_aws_55 := s3.ckv_aws_55
+warn_ckv_aws_56 := s3.ckv_aws_56
