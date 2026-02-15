@@ -22,8 +22,9 @@ resource "awscc_s3_bucket" "failed_2" {
 test_ckv_aws_18_failed if {
 	issues := s3.ckv_aws_18 with terraform.resources as non_logging_buckets
 	count(issues) == 2
-	some issue in issues
-	issue.msg == "Ensure the S3 bucket has access logging enabled"
+	every issue in issues {
+		issue.msg == "Ensure the S3 bucket has access logging enabled"
+	}
 }
 
 logging_buckets(type, schema, options) := terraform.mock_resources(
@@ -76,8 +77,9 @@ resource "awscc_s3_bucket" "failed_5" {
 test_ckv_aws_53_failed if {
 	issues := s3.ckv_aws_53 with terraform.resources as non_blocking_public_acls_buckets
 	count(issues) == 5
-	some issue in issues
-	issue.msg == "Ensure S3 bucket has block public ACLs enabled"
+	every issue in issues {
+		issue.msg == "Ensure S3 bucket has block public ACLs enabled"
+	}
 }
 
 blocking_public_acls_buckets(type, schema, options) := terraform.mock_resources(
@@ -132,8 +134,9 @@ resource "awscc_s3_bucket" "failed_5" {
 test_ckv_aws_54_failed if {
 	issues := s3.ckv_aws_54 with terraform.resources as non_blocking_public_policy_buckets
 	count(issues) == 5
-	some issue in issues
-	issue.msg == "Ensure S3 bucket has block public policy enabled"
+	every issue in issues {
+		issue.msg == "Ensure S3 bucket has block public policy enabled"
+	}
 }
 
 blocking_public_policy_buckets(type, schema, options) := terraform.mock_resources(
