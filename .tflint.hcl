@@ -5,9 +5,10 @@ plugin "aws" {
 }
 
 plugin "opa" {
-  enabled = true
-  source  = "github.com/terraform-linters/tflint-ruleset-opa"
-  version = "0.10.0"
+  enabled    = true
+  policy_dir = ".tflint.d/policies"
+  source     = "github.com/terraform-linters/tflint-ruleset-opa"
+  version    = "0.10.0"
 }
 
 rule "terraform_required_providers" {
