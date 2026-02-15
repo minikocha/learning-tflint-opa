@@ -43,6 +43,53 @@ test_ckv_aws_18_passed if {
 }
 
 # -----
+# CKV_AWS_21: Ensure the S3 bucket has versioning enabled
+# -----
+
+versioning_disabled(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_s3_bucket" "failed_1" {}
+
+resource "awscc_s3_bucket" "failed_2" {
+  versioning_configuration = null
+}
+
+resource "awscc_s3_bucket" "failed_3" {
+  versioning_configuration = {
+    status = "Suspended"
+  }
+}`},
+)
+
+test_ckv_aws_21_failed if {
+	issues := s3.ckv_aws_21 with terraform.resources as versioning_disabled
+	count(issues) == 3
+	every issue in issues {
+		issue.msg == "Ensure the S3 bucket has versioning enabled"
+	}
+}
+
+versioning_enabled(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_s3_bucket" "passed_1" {
+  versioning_configuration = {
+    status = "Enabled"
+  }
+}`},
+)
+
+test_ckv_aws_21_passed if {
+	issues := s3.ckv_aws_21 with terraform.resources as versioning_enabled
+	count(issues) == 0
+}
+
+# -----
 # CKV_AWS_53: Ensure S3 bucket has block public ACLs enabled
 # -----
 

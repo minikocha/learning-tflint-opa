@@ -55,6 +55,28 @@ ckv_aws_18 contains issue if {
 }
 
 # -----
+# CKV_AWS_21: Ensure the S3 bucket has versioning enabled
+# -----
+
+versioning(config) if {
+	not "versioning_configuration" in object.keys(config)
+}
+
+versioning(config) if {
+	config.versioning_configuration.value == null
+}
+
+versioning(config) if {
+	not config.versioning_configuration.value.status == "Enabled"
+}
+
+ckv_aws_21 contains issue if {
+	some i
+	versioning(buckets[i].config)
+	issue := tflint.issue("Ensure the S3 bucket has versioning enabled", buckets[i].decl_range)
+}
+
+# -----
 # CKV_AWS_53: Ensure S3 bucket has block public ACLs enabled
 # -----
 
