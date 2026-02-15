@@ -212,3 +212,60 @@ test_ckv_aws_55_passed if {
 	issues := s3.ckv_aws_55 with terraform.resources as ignoring_public_acls_buckets
 	count(issues) == 0
 }
+
+# -----
+# CKV_AWS_56: Ensure S3 bucket has RestrictPublicBuckets enabled
+# -----
+
+non_restricting_public_buckets_buckets(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_s3_bucket" "failed_1" {}
+
+resource "awscc_s3_bucket" "failed_2" {
+  public_access_block_configuration = null
+}
+
+resource "awscc_s3_bucket" "failed_3" {
+  public_access_block_configuration = {}
+}
+
+resource "awscc_s3_bucket" "failed_4" {
+  public_access_block_configuration = {
+    restrict_public_buckets = null
+  }
+}
+
+resource "awscc_s3_bucket" "failed_5" {
+  public_access_block_configuration = {
+    restrict_public_buckets = false
+  }
+}`},
+)
+
+test_ckv_aws_56_failed if {
+	issues := s3.ckv_aws_56 with terraform.resources as non_restricting_public_buckets_buckets
+	count(issues) == 5
+	every issue in issues {
+		issue.msg == "Ensure S3 bucket has RestrictPublicBuckets enabled"
+	}
+}
+
+restricting_public_buckets_buckets(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_s3_bucket" "passed_1" {
+  public_access_block_configuration = {
+    restrict_public_buckets = true
+  }
+}`},
+)
+
+test_ckv_aws_56_passed if {
+	issues := s3.ckv_aws_56 with terraform.resources as restricting_public_buckets_buckets
+	count(issues) == 0
+}
