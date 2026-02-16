@@ -405,8 +405,8 @@ resource "awscc_s3_bucket_policy" "passed_1" {
       "Statement": [
         {
           "Principal": {
-		    "Service": "logging.s3.amazonaws.com"
-		  },
+            "Service": "logging.s3.amazonaws.com"
+          },
           "Effect": "Allow",
           "Action": "s3:PutObject",
           "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*"
