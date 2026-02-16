@@ -127,23 +127,26 @@ ckv_aws_56 contains issue if {
 # -----
 
 allows_any_principal(policy_document) if {
-	policy_document.Statement[_].Effect == "Allow"
-	policy_document.Statement[_].Principal == "*"
+	some stmt in policy_document.Statement
+	stmt.Effect == "Allow"
+	stmt.Principal == "*"
 }
 
 allows_any_principal(policy_document) if {
-	policy_document.Statement[_].Effect == "Allow"
-	is_object(policy_document.Statement[_].Principal)
-	"AWS" in object.keys(policy_document.Statement[_].Principal)
-	policy_document.Statement[_].Principal.AWS == "*"
+	some stmt in policy_document.Statement
+	stmt.Effect == "Allow"
+	is_object(stmt.Principal)
+	"AWS" in object.keys(stmt.Principal)
+	stmt.Principal.AWS == "*"
 }
 
 allows_any_principal(policy_document) if {
-	policy_document.Statement[_].Effect == "Allow"
-	is_object(policy_document.Statement[_].Principal)
-	"AWS" in object.keys(policy_document.Statement[_].Principal)
-	is_array(policy_document.Statement[_].Principal.AWS)
-	"*" in policy_document.Statement[_].Principal.AWS
+	some stmt in policy_document.Statement
+	stmt.Effect == "Allow"
+	is_object(stmt.Principal)
+	"AWS" in object.keys(stmt.Principal)
+	is_array(stmt.Principal.AWS)
+	"*" in stmt.Principal.AWS
 }
 
 ckv_aws_70 contains issue if {
