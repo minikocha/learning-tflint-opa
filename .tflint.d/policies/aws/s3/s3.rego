@@ -19,7 +19,7 @@ bucket_policies := terraform.resources(
 )
 
 # -----
-# Functions
+# Functions(public_access_block_configuration)
 # -----
 
 public_access_block_configuration(config, _) if {
@@ -40,6 +40,30 @@ public_access_block_configuration(config, property) if {
 
 public_access_block_configuration(config, property) if {
 	config.public_access_block_configuration.value[property] == false
+}
+
+# -----
+# Functions(has_any_principal)
+# -----
+
+has_any_principal(stmt) if {
+	"Principal" in object.keys(stmt)
+	stmt.Principal == "*"
+}
+
+has_any_principal(stmt) if {
+	"Principal" in object.keys(stmt)
+	is_object(stmt.Principal)
+	"AWS" in object.keys(stmt.Principal)
+	stmt.Principal.AWS == "*"
+}
+
+has_any_principal(stmt) if {
+	"Principal" in object.keys(stmt)
+	is_object(stmt.Principal)
+	"AWS" in object.keys(stmt.Principal)
+	is_array(stmt.Principal.AWS)
+	"*" in stmt.Principal.AWS
 }
 
 # -----
@@ -126,33 +150,12 @@ ckv_aws_56 contains issue if {
 # CKV_AWS_70: Ensure S3 bucket does not allow an action with any Principal
 # -----
 
-allows_any_principal(policy_document) if {
-	some stmt in policy_document.Statement
-	stmt.Effect == "Allow"
-	stmt.Principal == "*"
-}
-
-allows_any_principal(policy_document) if {
-	some stmt in policy_document.Statement
-	stmt.Effect == "Allow"
-	is_object(stmt.Principal)
-	"AWS" in object.keys(stmt.Principal)
-	stmt.Principal.AWS == "*"
-}
-
-allows_any_principal(policy_document) if {
-	some stmt in policy_document.Statement
-	stmt.Effect == "Allow"
-	is_object(stmt.Principal)
-	"AWS" in object.keys(stmt.Principal)
-	is_array(stmt.Principal.AWS)
-	"*" in stmt.Principal.AWS
-}
-
 ckv_aws_70 contains issue if {
 	some i
 	doc := json.unmarshal(bucket_policies[i].config.policy_document.value)
-	allows_any_principal(doc)
+	some stmt in doc.Statement
+	stmt.Effect == "Allow"
+	has_any_principal(stmt)
 	issue := tflint.issue("Ensure S3 bucket does not allow an action with any Principal", bucket_policies[i].decl_range)
 }
 
@@ -163,26 +166,6 @@ ckv_aws_70 contains issue if {
 # NOTE: 完全にチェックするなら下記パターンも確認すべきだが、checkovに倣って確認していない。
 #   - NotPrincipalに"*"が含まれるパターン
 #   - NotActionでs3:PutBucketPolicyを含まないパターン
-
-has_any_principal(stmt) if {
-	"Principal" in object.keys(stmt)
-	stmt.Principal == "*"
-}
-
-has_any_principal(stmt) if {
-	"Principal" in object.keys(stmt)
-	is_object(stmt.Principal)
-	"AWS" in object.keys(stmt.Principal)
-	stmt.Principal.AWS == "*"
-}
-
-has_any_principal(stmt) if {
-	"Principal" in object.keys(stmt)
-	is_object(stmt.Principal)
-	"AWS" in object.keys(stmt.Principal)
-	is_array(stmt.Principal.AWS)
-	"*" in stmt.Principal.AWS
-}
 
 # NOTE: NotPrincipalを考慮する場合は以下のように実装する。
 #
