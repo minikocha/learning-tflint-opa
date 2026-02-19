@@ -414,6 +414,23 @@ resource "awscc_s3_bucket_policy" "passed_1" {
       ]
     }
   EOT
+}
+
+resource "awscc_s3_bucket_policy" "passed_2" {
+  bucket = ""
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": "*",
+          "Effect": "Deny",
+          "Action": "*",
+          "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*"
+        }
+      ]
+    }
+  EOT
 }`},
 )
 
