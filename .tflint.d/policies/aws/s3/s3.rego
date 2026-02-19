@@ -155,3 +155,99 @@ ckv_aws_70 contains issue if {
 	allows_any_principal(doc)
 	issue := tflint.issue("Ensure S3 bucket does not allow an action with any Principal", bucket_policies[i].decl_range)
 }
+
+# -----
+# CKV_AWS_93: Ensure S3 bucket policy does not lockout all but root user. (Prevent lockouts needing root account fixes)
+# -----
+
+# NOTE: 完全にチェックするなら下記パターンも確認すべきだが、checkovに倣って確認していない。
+#   - NotPrincipalに"*"が含まれるパターン
+#   - NotActionでs3:PutBucketPolicyを含まないパターン
+
+has_any_principal(stmt) if {
+	"Principal" in object.keys(stmt)
+	stmt.Principal == "*"
+}
+
+has_any_principal(stmt) if {
+	"Principal" in object.keys(stmt)
+	is_object(stmt.Principal)
+	"AWS" in object.keys(stmt.Principal)
+	stmt.Principal.AWS == "*"
+}
+
+has_any_principal(stmt) if {
+	"Principal" in object.keys(stmt)
+	is_object(stmt.Principal)
+	"AWS" in object.keys(stmt.Principal)
+	is_array(stmt.Principal.AWS)
+	"*" in stmt.Principal.AWS
+}
+
+# NOTE: NotPrincipalを考慮する場合は以下のように実装する。
+#
+# has_any_principal(stmt) if {
+# 	"NotPrincipal" in object.keys(stmt)
+# 	stmt.NotPrincipal == "*"
+# }
+#
+# has_any_principal(stmt) if {
+# 	"NotPrincipal" in object.keys(stmt)
+# 	is_object(stmt.NotPrincipal)
+# 	"AWS" in object.keys(stmt.NotPrincipal)
+# 	stmt.NotPrincipal.AWS == "*"
+# }
+#
+# has_any_principal(stmt) if {
+# 	"NotPrincipal" in object.keys(stmt)
+# 	is_object(stmt.NotPrincipal)
+# 	"AWS" in object.keys(stmt.NotPrincipal)
+# 	is_array(stmt.NotPrincipal.AWS)
+# 	"*" in stmt.NotPrincipal.AWS
+# }
+
+has_put_bucket_policy_permission(stmt) if {
+	"Action" in object.keys(stmt)
+	is_array(stmt.Action)
+	some action in stmt.Action
+	replaced := regex.replace(action, `(\?|\*)`, `.$1`)
+	regex.match(replaced, "s3:PutBucketPolicy")
+}
+
+has_put_bucket_policy_permission(stmt) if {
+	"Action" in object.keys(stmt)
+	not is_array(stmt.Action)
+	replaced := regex.replace(stmt.Action, `(\?|\*)`, `.$1`)
+	regex.match(replaced, "s3:PutBucketPolicy")
+}
+
+# NOTE: NotActionを考慮する場合は以下のように実装する。
+#
+# has_put_bucket_policy_permission(stmt) if {
+# 	"NotAction" in object.keys(stmt)
+# 	is_array(stmt.NotAction)
+# 	some not_action in stmt.NotAction
+# 	replaced := regex.replace(not_action, `(\?|\*)`, `.$1`)
+# 	not regex.match(replaced, "s3:PutBucketPolicy")
+# }
+#
+# has_put_bucket_policy_permission(stmt) if {
+# 	"NotAction" in object.keys(stmt)
+# 	not is_array(stmt.NotAction)
+# 	replaced := regex.replace(stmt.NotAction, `(\?|\*)`, `.$1`)
+# 	not regex.match(replaced, "s3:PutBucketPolicy")
+# }
+
+ckv_aws_93 contains issue if {
+	some i
+	doc := json.unmarshal(bucket_policies[i].config.policy_document.value)
+	some stmt in doc.Statement
+	not "Condition" in object.keys(stmt)
+	stmt.Effect == "Deny"
+	has_any_principal(stmt)
+	has_put_bucket_policy_permission(stmt)
+	issue := tflint.issue(
+		"Ensure S3 bucket policy does not lockout all but root user. (Prevent lockouts needing root account fixes)",
+		bucket_policies[i].decl_range,
+	)
+}
