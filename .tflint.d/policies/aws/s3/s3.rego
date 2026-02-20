@@ -193,14 +193,14 @@ has_put_bucket_policy_permission(stmt) if {
 	"Action" in object.keys(stmt)
 	is_array(stmt.Action)
 	some action in stmt.Action
-	replaced := regex.replace(action, `(\?|\*)`, `.$1`)
+	replaced := regex.replace(regex.replace(action, `\?`, `.`), `(\*)`, `.$1`)
 	regex.match(replaced, "s3:PutBucketPolicy")
 }
 
 has_put_bucket_policy_permission(stmt) if {
 	"Action" in object.keys(stmt)
 	not is_array(stmt.Action)
-	replaced := regex.replace(stmt.Action, `(\?|\*)`, `.$1`)
+	replaced := regex.replace(regex.replace(stmt.Action, `\?`, `.`), `(\*)`, `.$1`)
 	regex.match(replaced, "s3:PutBucketPolicy")
 }
 
@@ -210,14 +210,14 @@ has_put_bucket_policy_permission(stmt) if {
 # 	"NotAction" in object.keys(stmt)
 # 	is_array(stmt.NotAction)
 # 	some not_action in stmt.NotAction
-# 	replaced := regex.replace(not_action, `(\?|\*)`, `.$1`)
+#   replaced := regex.replace(regex.replace(not_action, `\?`, `.`), `(\*)`, `.$1`)
 # 	not regex.match(replaced, "s3:PutBucketPolicy")
 # }
 #
 # has_put_bucket_policy_permission(stmt) if {
 # 	"NotAction" in object.keys(stmt)
 # 	not is_array(stmt.NotAction)
-# 	replaced := regex.replace(stmt.NotAction, `(\?|\*)`, `.$1`)
+#   replaced := regex.replace(regex.replace(stmt.NotAction, `\?`, `.`), `(\*)`, `.$1`)
 # 	not regex.match(replaced, "s3:PutBucketPolicy")
 # }
 
