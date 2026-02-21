@@ -101,3 +101,102 @@ test_ckv_aws_60_passed if {
 	issues := iam.ckv_aws_60 with terraform.resources as allows_specific_assume
 	count(issues) == 0
 }
+
+# -----
+# CKV_AWS_61: "Ensure AWS IAM policy does not allow assume role permission across all services"
+# -----
+
+allows_assume_from_account(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	# NOTE: using `jsonencode()` fails to create mock resources, so use here-doc instead.
+	{"main.tf": `
+resource "awscc_iam_role" "failed_1" {
+  assume_role_policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+            "AWS": "123456789012"
+          },
+          "Effect": "Allow",
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_iam_role" "failed_2" {
+  assume_role_policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+            "AWS": ["arn:aws:iam::123456789012:root"]
+          },
+          "Effect": "Allow",
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+  EOT
+}`},
+)
+
+test_ckv_aws_61_failed if {
+	issues := iam.ckv_aws_61 with terraform.resources as allows_assume_from_account
+	count(issues) == 2
+	every issue in issues {
+		issue.msg == "Ensure AWS IAM policy does not allow assume role permission across all services"
+	}
+}
+
+not_allows_assume_from_account(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	# NOTE: using `jsonencode()` fails to create mock resources, so use here-doc instead.
+	{"main.tf": `
+resource "awscc_iam_role" "passed_1" {
+  assume_role_policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+            "Service": "ec2.amazonaws.com"
+          },
+          "Effect": "Allow",
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_iam_role" "passed_2" {
+  assume_role_policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Principal": {
+            "AWS": "123456789012"
+          },
+          "Effect": "Deny",
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+  EOT
+}`},
+)
+
+test_ckv_aws_61_passed if {
+	issues := iam.ckv_aws_61 with terraform.resources as not_allows_assume_from_account
+	count(issues) == 0
+}

@@ -9,6 +9,7 @@ import rego.v1
 # -----
 
 deny_ckv_aws_60 := iam.ckv_aws_60
+deny_ckv_aws_61 := iam.ckv_aws_61
 
 # -----
 # S3
