@@ -1,7 +1,14 @@
 package tflint
 
+import data.aws.iam
 import data.aws.s3
 import rego.v1
+
+# -----
+# IAM
+# -----
+
+deny_ckv_aws_60 := iam.ckv_aws_60
 
 # -----
 # S3
