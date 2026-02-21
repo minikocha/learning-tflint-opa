@@ -193,15 +193,15 @@ has_put_bucket_policy_permission(stmt) if {
 	"Action" in object.keys(stmt)
 	is_array(stmt.Action)
 	some action in stmt.Action
-	replaced := regex.replace(regex.replace(sprintf("^%s$", [action]), `\?`, `.`), `(\*)`, `.$1`)
-	regex.match(replaced, "s3:PutBucketPolicy")
+	pattern := regex.replace(regex.replace(sprintf("^%s$", [lower(action)]), `\?`, `.`), `(\*)`, `.$1`)
+	regex.match(pattern, lower("s3:PutBucketPolicy"))
 }
 
 has_put_bucket_policy_permission(stmt) if {
 	"Action" in object.keys(stmt)
 	not is_array(stmt.Action)
-	replaced := regex.replace(regex.replace(sprintf("^%s$", [stmt.Action]), `\?`, `.`), `(\*)`, `.$1`)
-	regex.match(replaced, "s3:PutBucketPolicy")
+	pattern := regex.replace(regex.replace(sprintf("^%s$", [lower(stmt.Action)]), `\?`, `.`), `(\*)`, `.$1`)
+	regex.match(pattern, lower("s3:PutBucketPolicy"))
 }
 
 # NOTE: NotActionを考慮する場合は以下のように実装する。
@@ -210,15 +210,15 @@ has_put_bucket_policy_permission(stmt) if {
 # 	"NotAction" in object.keys(stmt)
 # 	is_array(stmt.NotAction)
 # 	some not_action in stmt.NotAction
-#   replaced := regex.replace(regex.replace(sprintf("^%s$", [not_action]), `\?`, `.`), `(\*)`, `.$1`)
-# 	not regex.match(replaced, "s3:PutBucketPolicy")
+#  	pattern := regex.replace(regex.replace(sprintf("^%s$", [lower(not_action)]), `\?`, `.`), `(\*)`, `.$1`)
+#  	not regex.match(pattern, lower("s3:PutBucketPolicy"))
 # }
 #
 # has_put_bucket_policy_permission(stmt) if {
 # 	"NotAction" in object.keys(stmt)
 # 	not is_array(stmt.NotAction)
-#   replaced := regex.replace(regex.replace(sprintf("^%s$", [stmt.NotAction]), `\?`, `.`), `(\*)`, `.$1`)
-# 	not regex.match(replaced, "s3:PutBucketPolicy")
+# 	pattern := regex.replace(regex.replace(sprintf("^%s$", [lower(stmt.NotAction)]), `\?`, `.`), `(\*)`, `.$1`)
+# 	not regex.match(pattern, lower("s3:PutBucketPolicy"))
 # }
 
 ckv_aws_93 contains issue if {

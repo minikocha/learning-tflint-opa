@@ -547,7 +547,7 @@ resource "awscc_s3_bucket_policy" "passed_2" {
             "AWS": "*"
           },
           "Effect": "Deny",
-          "Action": "s3:*",
+          "Action": "s3:putbucketpolicy",
           "Resource": "arn:aws:s3:::amzn-s3-demo-bucket",
           "Condition": {
             "StringNotEquals": {
