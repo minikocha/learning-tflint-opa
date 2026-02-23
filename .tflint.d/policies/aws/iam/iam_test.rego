@@ -564,3 +564,48 @@ test_ckv_aws_63_passed if {
 	issues := iam.ckv_aws_63 with terraform.resources as constrained_resource_policies
 	count(issues) == 0
 }
+
+# -----
+# CKV_AWS_274: "Disallow IAM roles, users, and groups from using the AWS AdministratorAccess policy"
+# -----
+
+administrator_access_attached(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_iam_group" "failed_1" {
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+}
+
+resource "awscc_iam_role" "failed_2" {
+  managed_policy_arns = ["arn:aws-cn:iam::aws:policy/AdministratorAccess"]
+}
+
+resource "awscc_iam_user" "failed_3" {
+  managed_policy_arns = ["arn:aws-us-gov:iam::aws:policy/AdministratorAccess"]
+}`},
+)
+
+test_ckv_aws_274_failed if {
+	issues := iam.ckv_aws_274 with terraform.resources as administrator_access_attached
+	count(issues) == 3
+	every issue in issues {
+		issue.msg == "Disallow IAM roles, users, and groups from using the AWS AdministratorAccess policy"
+	}
+}
+
+administrator_access_not_attached(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	{"main.tf": `
+resource "awscc_iam_group" "passed_1" {
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
+}`},
+)
+
+test_ckv_aws_274_passed if {
+	issues := iam.ckv_aws_274 with terraform.resources as administrator_access_not_attached
+	count(issues) == 0
+}

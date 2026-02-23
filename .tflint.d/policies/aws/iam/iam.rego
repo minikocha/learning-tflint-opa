@@ -371,3 +371,43 @@ ckv_aws_63 contains issue if {
 		user_policies[i].decl_range,
 	)
 }
+
+# -----
+# CKV_AWS_274: "Disallow IAM roles, users, and groups from using the AWS AdministratorAccess policy"
+# -----
+
+has_administrator_access_policy(managed_policy_arns) if {
+	not is_null(managed_policy_arns)
+	some arn in managed_policy_arns
+	regex.match(`^arn:(aws|aws-cn|aws-us-gov):iam::aws:policy/AdministratorAccess$`, arn)
+}
+
+ckv_aws_274 contains issue if {
+	some i
+	"managed_policy_arns" in object.keys(groups[i].config)
+	has_administrator_access_policy(groups[i].config.managed_policy_arns.value)
+	issue := tflint.issue(
+		"Disallow IAM roles, users, and groups from using the AWS AdministratorAccess policy",
+		groups[i].decl_range,
+	)
+}
+
+ckv_aws_274 contains issue if {
+	some i
+	"managed_policy_arns" in object.keys(roles[i].config)
+	has_administrator_access_policy(roles[i].config.managed_policy_arns.value)
+	issue := tflint.issue(
+		"Disallow IAM roles, users, and groups from using the AWS AdministratorAccess policy",
+		roles[i].decl_range,
+	)
+}
+
+ckv_aws_274 contains issue if {
+	some i
+	"managed_policy_arns" in object.keys(users[i].config)
+	has_administrator_access_policy(users[i].config.managed_policy_arns.value)
+	issue := tflint.issue(
+		"Disallow IAM roles, users, and groups from using the AWS AdministratorAccess policy",
+		users[i].decl_range,
+	)
+}
