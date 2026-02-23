@@ -382,3 +382,185 @@ test_ckv_aws_62_passed if {
 	issues := iam.ckv_aws_62 with terraform.resources as non_admin_privilege_policies
 	count(issues) == 0
 }
+
+# -----
+# CKV_AWS_63: "Ensure no IAM policies documents allow \"*\" as a statement's actions"
+# -----
+
+unconstrained_resource_policies(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	# NOTE: using `jsonencode()` fails to create mock resources, so use here-doc instead.
+	{"main.tf": `
+resource "awscc_iam_group" "failed_1" {
+  policies = [
+    {
+      policy_document = <<-EOT
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource": "*"
+            }
+          ]
+        }
+      EOT
+    },
+  ]
+}
+
+resource "awscc_iam_group_policy" "failed_2" {
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["*"],
+          "Resource": ["*"]
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_iam_managed_policy" "failed_3" {
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["*"],
+          "Resource": ["*"]
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_iam_role" "failed_4" {
+  policies = [
+    {
+      policy_document = <<-EOT
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource": "*"
+            }
+          ]
+        }
+      EOT
+    },
+  ]
+}
+
+resource "awscc_iam_role_policy" "failed_5" {
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["*"],
+          "Resource": ["*"]
+        }
+      ]
+    }
+  EOT
+}
+
+resource "awscc_iam_user" "failed_6" {
+  policies = [
+    {
+      policy_document = <<-EOT
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource": "*"
+            }
+          ]
+        }
+      EOT
+    },
+  ]
+}
+
+resource "awscc_iam_user_policy" "failed_7" {
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["*"],
+          "Resource": ["*"]
+        }
+      ]
+    }
+  EOT
+}`},
+)
+
+test_ckv_aws_63_failed if {
+	issues := iam.ckv_aws_63 with terraform.resources as unconstrained_resource_policies
+	count(issues) == 7
+	every issue in issues {
+		issue.msg == "Ensure no IAM policies documents allow \"*\" as a statement's actions"
+	}
+}
+
+constrained_resource_policies(type, schema, options) := terraform.mock_resources(
+	type,
+	schema,
+	options,
+	# NOTE: using `jsonencode()` fails to create mock resources, so use here-doc instead.
+	{"main.tf": `
+resource "awscc_iam_group" "passed_1" {
+  policies = [
+    {
+      policy_document = <<-EOT
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Action": "*",
+              "Resource": "*"
+            }
+          ]
+        }
+      EOT
+    },
+  ]
+}
+
+resource "awscc_iam_group_policy" "passed_2" {
+  policy_document = <<-EOT
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:ListAllMyBuckets"],
+          "Resource": ["*"]
+        }
+      ]
+    }
+  EOT
+}`},
+)
+
+test_ckv_aws_63_passed if {
+	issues := iam.ckv_aws_63 with terraform.resources as constrained_resource_policies
+	count(issues) == 0
+}
